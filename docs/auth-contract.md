@@ -72,7 +72,7 @@ Logout отзывает сессию на сервере. Полноценног
 
 Клиент хранит access token в sessionStorage своей вкладки, пароль туда не записывается.
 Обновление страницы восстанавливает сессию; закрытие вкладки завершает клиентское хранение.
-React context хранит текущего пользователя; запрос 401 очищает клиентскую сессию.
+App.tsx хранит текущего пользователя в обычном state; запрос 401 очищает клиентскую сессию.
 
 ## Запуск, окружение и demo seed
 
@@ -119,3 +119,5 @@ docker compose -p messenger-s2 exec -T -e DEMO_PASSWORD backend python -m app.se
 
 Источники решений: [PyJWT](https://pyjwt.readthedocs.io/en/latest/usage.html),
 [hashlib.scrypt](https://docs.python.org/3/library/hashlib.html#hashlib.scrypt).
+
+Карта текущих файлов после упрощения: [structure.md](structure.md). Маршруты находятся в auth.py, операции пользователей — в users.py, состояние клиента — в App.tsx.

@@ -10,6 +10,7 @@ from app.config import get_settings
 
 
 def hash_password(password: str):
+    # Случайная соль даёт разные хеши даже для одинаковых паролей.
     salt = secrets.token_bytes(16)
     key = hashlib.scrypt(password.encode(), salt=salt, n=2**15, r=8, p=1, maxmem=64 * 1024 * 1024)
     return "scrypt$" + base64.b64encode(salt).decode() + "$" + base64.b64encode(key).decode()
@@ -53,6 +54,7 @@ def create_token(user_id, session_id):
 
 
 def decode_token(token: str):
+    # Токен подписан, но не зашифрован. Пароль в него не кладём.
     return jwt.decode(
         token,
         get_settings().auth_secret_key,

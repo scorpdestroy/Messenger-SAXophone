@@ -46,6 +46,7 @@ class AuthSession(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
+# Таблицы ниже оставлены как задел схемы. Отправки сообщений в приложении пока нет.
 class Chat(Timestamps, Base):
     __tablename__ = "chats"
     __table_args__ = (

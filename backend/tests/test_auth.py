@@ -10,15 +10,13 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.auth.security import hash_password, verify_password
 from app.config import Settings, get_settings
 from app.db import Base, get_db
 from app.main import app
 from app.models import AuthSession, User
+from app.security import hash_password, verify_password
 from app.seed import seed
-from app.users.repository import find_identity
-from app.users.schemas import RegisterRequest
-from app.users.service import create_user
+from app.users import RegisterRequest, create_user, find_identity
 
 
 @pytest.fixture
@@ -226,7 +224,7 @@ def test_hash_salt_and_production_configuration():
 
 
 def test_unique_constraint_handles_registration_race(db, monkeypatch):
-    from app.users import service
+    from app import users as service
 
     create_user(db, RegisterRequest(**payload()))
     monkeypatch.setattr(service, "find_conflict", lambda *args: None)

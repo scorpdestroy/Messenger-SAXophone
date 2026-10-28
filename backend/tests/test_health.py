@@ -24,6 +24,7 @@ def test_readiness_reports_database_failure():
         def execute(self, statement):
             raise OperationalError("SELECT 1", {}, Exception("offline"))
 
+    # Имитируем отказ БД внутри теста, чтобы не останавливать настоящий PostgreSQL.
     app.dependency_overrides[get_db] = lambda: BrokenDB()
     try:
         response = client.get("/ready")

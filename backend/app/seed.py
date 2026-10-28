@@ -6,9 +6,7 @@ from sqlalchemy import delete
 
 from app.db import SessionLocal
 from app.models import AuthSession
-from app.users.repository import find_identity
-from app.users.schemas import RegisterRequest
-from app.users.service import create_user
+from app.users import RegisterRequest, create_user, find_identity
 
 
 def seed(db, password: str):
@@ -18,6 +16,7 @@ def seed(db, password: str):
         if user:
             if user.email != email:
                 raise ValueError("Demo username belongs to a different account")
+            # Повторный запуск не меняет пароль уже существующего demo-аккаунта.
             continue
         create_user(
             db,

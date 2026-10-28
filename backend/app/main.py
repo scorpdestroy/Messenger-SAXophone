@@ -9,14 +9,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
-from app.auth.routes import router as auth_router
+from app.auth import router
 from app.config import get_settings
 from app.db import get_db
-from app.users.routes import router as users_router
 
 app = FastAPI(title="Messenger SAXophone", version="0.1.0")
-app.include_router(auth_router)
-app.include_router(users_router)
+app.include_router(router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -53,11 +51,13 @@ async def unexpected_error(request: Request, exc: Exception):
 
 @app.get("/health", tags=["system"])
 def health():
+    # Здесь не трогаем БД: проверяем, что сам сервер отвечает.
     return {"status": "ok", "service": "saxophone-api"}
 
 
 @app.get("/ready", tags=["system"])
 def ready(db: Session = Depends(get_db)):
+    # Для готовности приложения уже нужна живая БД, а не только запущенный Python.
     try:
         db.execute(text("SELECT 1"))
     except SQLAlchemyError:

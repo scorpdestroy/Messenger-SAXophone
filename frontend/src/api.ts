@@ -27,6 +27,7 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
     throw new ApiError(0, 'Нет соединения с сервером. Попробуйте ещё раз.')
   }
   if (!response.ok) {
+    // Запоздавший 401 от старого запроса не должен стереть новый токен после входа.
     if (response.status === 401 && token && token === sessionStorage.getItem(tokenKey)) {
       sessionStorage.removeItem(tokenKey)
       window.dispatchEvent(new Event('auth-expired'))
@@ -37,6 +38,7 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
     }
     throw new ApiError(response.status, messages[response.status] || 'Ошибка сервера. Попробуйте ещё раз.')
   }
+  // У успешного logout нет тела: response.json() здесь дал бы ошибку.
   if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
