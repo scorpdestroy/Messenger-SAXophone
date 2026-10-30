@@ -73,4 +73,11 @@ describe('request', () => {
     expect(error.status).toBe(0)
     expect(error.message).toBe('Нет соединения с сервером. Попробуйте ещё раз.')
   })
+
+  it('отмену запроса не выдаёт за ошибку сети', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new DOMException('aborted', 'AbortError')))
+    const error = await errorOf(request('/users/me'))
+    expect(error).not.toBeInstanceOf(ApiError)
+    expect((error as unknown as DOMException).name).toBe('AbortError')
+  })
 })
