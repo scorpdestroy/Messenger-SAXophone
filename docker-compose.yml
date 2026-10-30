@@ -32,8 +32,6 @@ services:
     restart: unless-stopped
     ports:
       - 13000:13000
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:
