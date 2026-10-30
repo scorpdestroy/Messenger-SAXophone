@@ -64,13 +64,13 @@ export function AuthPage({ user, loading, onLogin, register = false }: {
     finally { setBusy(false) }
   }
   return <div className="page auth-page"><Card>
-    <div className="card-eyebrow"><span className="brand-mark" aria-hidden="true">S</span> SAXOPHONE / АККАУНТ</div>
+    <nav className="auth-tabs" aria-label="Доступ к аккаунту"><Link to="/login" aria-current={!register ? 'page' : undefined}>Вход</Link><Link to="/register" aria-current={register ? 'page' : undefined}>Регистрация</Link></nav>
     <h1>{register ? 'Регистрация' : 'Экран входа'}</h1>
     {!registered && <p className="card-intro">{register ? 'Создайте аккаунт, чтобы быть на связи.' : 'Рады видеть вас снова. Войдите, чтобы продолжить.'}</p>}
     {registered ? <><p role="status">Аккаунт создан. Войдите с вашим логином и паролем.</p><Link to="/login">Перейти ко входу</Link></> :
-      <form noValidate onSubmit={submit}>
+      <form noValidate onSubmit={submit} aria-busy={busy}>
         {register ? <>
-          <Input id="username" label="Логин" autoComplete="username" {...field('username')} />
+          <Input id="username" label="Логин" autoComplete="username" autoCapitalize="none" spellCheck={false} {...field('username')} />
           <Input id="email" label="Электронная почта" type="email" autoComplete="email" {...field('email')} />
           <Input id="display-name" label="Отображаемое имя (необязательно)" autoComplete="name" {...field('display_name')} />
         </> : <Input id="identity" label="Логин или почта" autoComplete="username" {...field('identity')} />}

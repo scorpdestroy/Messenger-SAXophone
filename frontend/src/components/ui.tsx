@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Icon } from './Icon'
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 
 export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -5,11 +7,16 @@ export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
 }
 
 export function Input({ label, error, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
-  return <label className="field" htmlFor={id}>
-    <span>{label}</span>
-    <input {...props} id={id} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} />
+  const [visible, setVisible] = useState(false)
+  const password = props.type === 'password'
+  return <div className="field">
+    <label htmlFor={id}>{label}</label>
+    <div className="input-wrap">
+      <input {...props} type={password && visible ? 'text' : props.type} className={password ? 'password-input' : undefined} id={id} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} />
+      {password && <button type="button" className="password-toggle" aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'} aria-pressed={visible} disabled={props.disabled} onClick={() => setVisible(current => !current)}><Icon name={visible ? 'hidden' : 'eye'} /></button>}
+    </div>
     {error && <small id={`${id}-error`} role="alert">{error}</small>}
-  </label>
+  </div>
 }
 
 export function Card({ children }: { children: ReactNode }) {
