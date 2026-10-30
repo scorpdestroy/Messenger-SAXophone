@@ -1,13 +1,12 @@
 from functools import lru_cache
 import secrets
-
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     app_env: str = "development"
-    auth_secret_key: str = Field(default="", repr=False)
+    auth_secret_key: str = Field(min_length=32, repr=False)
     access_token_minutes: int = Field(default=60, ge=1, le=1440)
     database_url: str = (
         "postgresql+psycopg://messenger:local-messenger"
