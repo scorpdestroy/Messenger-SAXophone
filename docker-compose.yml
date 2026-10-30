@@ -1,61 +1,38 @@
-x-backend: &backend-common
-  image: messenger-backend:local
-  build:
-    context: ./backend
-    dockerfile: Dockerfile
-  # Секрет берётся из уже существующего локального файла, не из образа.
-  env_file:
-    - ./backend/.env
-  environment:
-    DATABASE_URL: postgresql+psycopg://messenger:local-messenger@db:5432/messenger
-    CORS_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://127.0.0.1:8080"]'
-
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: messenger
-      POSTGRES_PASSWORD: local-messenger
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: messenger
-    ports:
-      - 55432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U messenger -d messenger"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d messenger"]
       interval: 5s
       timeout: 5s
-      retries: 15
-
-  migrate:
-    <<: *backend-common
-    command: ["python", "-m", "alembic", "upgrade", "head"]
-    healthcheck:
-      disable: true
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: "no"
+      retries: 10
 
   backend:
-    <<: *backend-common
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres@db:5432/messenger
     ports:
-      - 18000:8000
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
-      - 16000:80
+      - "3000:3000"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
 volumes:
   postgres_data:
