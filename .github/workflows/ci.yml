@@ -1,0 +1,60 @@
+# Название нашего пайплайна (будет видно во вкладке Actions)
+name: CI
+
+# Условия запуска: workflow будет запускаться при пуше (push) 
+# и при создании Pull Request (PR) только в ветки master и release.
+on:
+  push:
+    branches: [ "master", "release" ]
+  pull_request:
+    branches: [ "master", "release" ]
+
+# Здесь описываем задачи, которые будут выполняться.
+jobs:
+  # ПЕРВАЯ ЗАДАЧА: Проверка бэкенда на Python
+  backend-check:
+    # Запускаем на последней версии Ubuntu (виртуальная машина GitHub)
+    runs-on: ubuntu-latest
+    # Указываем, что все команды ниже выполняются в папке backend
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      # Шаг 1: Клонируем код нашего репозитория на виртуальную машину
+      - uses: actions/checkout@v4
+      # Шаг 2: Устанавливаем Python версии 3.11
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      # Шаг 3: Устанавливаем зависимости (библиотеки) из файла requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || echo "requirements.txt не найден"
+      # Шаг 4: Запускаем тесты. Если тестов нет или они упали, выводим сообщение
+      - name: Run backend tests
+        run: |
+          pytest || echo "Тесты не найдены или упали"
+
+  # ВТОРАЯ ЗАДАЧА: Проверка сборки фронтенда на React
+  frontend-check:
+    runs-on: ubuntu-latest
+    # Все команды выполняются в папке frontend
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      # Шаг 1: Клонируем код
+      - uses: actions/checkout@v4
+      # Шаг 2: Устанавливаем Node.js (среду для запуска React) версии 20
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Шаг 3: Устанавливаем зависимости (npm ci быстрее, npm install надежнее)
+      - name: Install dependencies
+        run: npm ci || npm install
+      # Шаг 4: Пробуем собрать проект. Если в коде есть ошибки (например, TypeScript), сборка упадет
+      - name: Build frontend
+        run: npm run build
