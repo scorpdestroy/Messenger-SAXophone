@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.models import AuthSession, User
-from backend.app.secure import create_token, decode_token, hash_password, verify_password
+from app.secure import create_token, decode_token, hash_password, verify_password
 from app.users.repository import find_identity
 from app.users.schemas import RegisterRequest, UserPublic
 from app.users.service import create_user
