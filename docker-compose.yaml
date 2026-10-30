@@ -18,7 +18,7 @@ services:
       POSTGRES_PASSWORD: local-messenger
       POSTGRES_DB: messenger
     ports:
-      - "127.0.0.1:55432:5432"
+      - 55432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -40,7 +40,7 @@ services:
   backend:
     <<: *backend-common
     ports:
-      - "127.0.0.1:8000:8000"
+      - 18000:8000
     depends_on:
       db:
         condition: service_healthy
@@ -52,7 +52,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:8080:80"
+      - 16000:80
     depends_on:
       backend:
         condition: service_healthy
