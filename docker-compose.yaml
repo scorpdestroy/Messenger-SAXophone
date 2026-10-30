@@ -1,3 +1,15 @@
+x-backend: &backend-common
+  image: messenger-backend:local
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  # Секрет берётся из уже существующего локального файла, не из образа.
+  env_file:
+    - ./backend/.env
+  environment:
+    DATABASE_URL: postgresql+psycopg://messenger:local-messenger@db:5432/messenger
+    CORS_ORIGINS: '["http://localhost:5173","http://localhost:8080","http://127.0.0.1:8080"]'
+
 services:
   db:
     image: postgres:16-alpine
@@ -6,35 +18,44 @@ services:
       POSTGRES_PASSWORD: local-messenger
       POSTGRES_DB: messenger
     ports:
-      - "55432:5432" # Пробрасываем на нестандартный порт, как в .env.example
+      - 55432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U messenger -d messenger"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 15
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      # Значения по умолчанию из backend/.env.example
-      DATABASE_URL: postgresql+psycopg://messenger:local-messenger@db:5432/messenger
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:8080"]'
-      APP_ENV: development
-      # ВАЖНО: Для production замените на постоянный секрет длиной не менее 32 байт
-      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:-}
-      ACCESS_TOKEN_MINUTES: 60
+  migrate:
+    <<: *backend-common
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    healthcheck:
+      disable: true
     depends_on:
       db:
         condition: service_healthy
-    # Опционально: монтируем код для разработки (hot-reload)
-    # volumes:
-    #   - ./backend:/app
+    restart: "no"
+
+  backend:
+    <<: *backend-common
+    ports:
+      - 18000:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 16000:80
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:
