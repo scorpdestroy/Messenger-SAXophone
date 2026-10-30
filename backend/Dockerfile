@@ -6,14 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Исходники меняются чаще зависимостей, поэтому копируем их отдельно.
+# Зависимости остаются в кеше, пока requirements.txt не меняется.
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
 RUN useradd --create-home --uid 10001 appuser
-
 COPY --chown=appuser:appuser . .
-
 USER appuser
 
 EXPOSE 8000

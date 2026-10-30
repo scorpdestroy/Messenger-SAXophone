@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Button, Input, Card } from './components';
 
-export function AuthPage({ onLogin }) {
-  // Создаю состояния для полей ввода. 
-  // Сюда React будет записывать то, что пользователь печатает в инпутах.
-  // А также состояния для текста ошибки и индикатора загрузки.
+// Мелкая правка: добавил тип для пропсов, чтобы TypeScript не ругался
+interface AuthPageProps {
+  onLogin: (login: string, password: string) => Promise<void>;
+}
+
+export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,7 +15,7 @@ export function AuthPage({ onLogin }) {
   // Функция, которая срабатывает при нажатии на кнопку "Войти" или Enter.
   // Здесь я сначала очищаю старые ошибки, включаю загрузку, 
   // а потом проверяю, не пустые ли поля.
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -32,7 +34,9 @@ export function AuthPage({ onLogin }) {
     // В любом случае, после завершения запроса выключаю загрузку в блоке finally.
     try {
       await onLogin(login, password); 
-    } catch (err) {
+    } catch (error) {
+      // Мелкая правка: добавил console.log, чтобы err не считался неиспользуемым
+      console.log(error);
       setError('Неверный логин или пароль');
     } finally {
       setLoading(false);

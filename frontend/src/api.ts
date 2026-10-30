@@ -25,7 +25,9 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
   let response: Response
   try {
     response = await fetch('/api' + path, { ...options, headers })
-  } catch {
+  } catch (error) {
+    // отмена запроса — не ошибка сети, пробрасываем её как есть
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new ApiError(0, 'Нет соединения с сервером. Попробуйте ещё раз.')
   }
 
