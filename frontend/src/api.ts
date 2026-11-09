@@ -35,8 +35,8 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
   if (!response.ok) {
     // если пока шёл запрос пользователь вошёл заново, 401 относится к старому токену — новый не трогаем
     const sameToken = token !== null && sessionStorage.getItem(tokenKey) === token
-    if (response.status === 401 && authenticated && sameToken) {
-      // токен больше не действует
+    const tokenExpired = response.status === 401 && authenticated && sameToken
+    if (tokenExpired) {
       sessionStorage.removeItem(tokenKey)
       window.dispatchEvent(new Event('auth-expired'))
     }
