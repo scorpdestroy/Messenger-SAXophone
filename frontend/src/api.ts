@@ -12,40 +12,61 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(path: string, options: RequestInit = {}, authenticated = true): Promise<T> {
-  const headers: Record<string, string> = {}
-  if (options.body) {
-    headers['Content-Type'] = 'application/json'
+export class BadRequestError extends ApiError {
+  constructor() { super(400, 'Проверьте заполнение полей.') }
+}
+
+export class UnauthorizedError extends ApiError {
+  constructor() { super(401, 'Неверный логин или пароль.') }
+}
+
+export class ConflictError extends ApiError {
+  constructor() { super(409, 'Этот логин или почта уже зарегистрированы.') }
+}
+
+export class ServerError extends ApiError {
+  constructor(status: number) { super(status, 'Ошибка сервера. Попробуйте ещё раз.') }
+}
+
+const errorByStatus: Record<number, new () => ApiError> = {
+  400: BadRequestError,
+  401: UnauthorizedError,
+  409: ConflictError,
+}
+
+export type RequestOptions = RequestInit & { authenticated?: boolean }
+
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { authenticated = true, ...init } = options
+  // заголовки, переданные вызывающим кодом, сохраняем и добавляем к ним свои
+  const headers = new Headers(init.headers)
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
   }
   const token = sessionStorage.getItem(tokenKey)
   if (authenticated && token) {
-    headers['Authorization'] = 'Bearer ' + token
+    headers.set('Authorization', 'Bearer ' + token)
   }
 
   let response: Response
   try {
-    response = await fetch('/api' + path, { ...options, headers })
+    response = await fetch('/api' + path, { ...init, headers })
   } catch (error) {
-    // отмена запроса — не ошибка сети, пробрасываем её как есть
-    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    const aborted = error instanceof DOMException && error.name === 'AbortError'
+    if (aborted) throw error
     throw new ApiError(0, 'Нет соединения с сервером. Попробуйте ещё раз.')
   }
 
   if (!response.ok) {
-    if (response.status === 401 && authenticated && token) {
-      // токен больше не действует
+    // если пока шёл запрос пользователь вошёл заново, 401 относится к старому токену — новый не трогаем
+    const sameToken = token !== null && sessionStorage.getItem(tokenKey) === token
+    const tokenExpired = response.status === 401 && authenticated && sameToken
+    if (tokenExpired) {
       sessionStorage.removeItem(tokenKey)
       window.dispatchEvent(new Event('auth-expired'))
     }
-    if (response.status === 400) {
-      throw new ApiError(400, 'Проверьте заполнение полей.')
-    } else if (response.status === 401) {
-      throw new ApiError(401, 'Неверный логин или пароль.')
-    } else if (response.status === 409) {
-      throw new ApiError(409, 'Этот логин или почта уже зарегистрированы.')
-    } else {
-      throw new ApiError(response.status, 'Ошибка сервера. Попробуйте ещё раз.')
-    }
+    const KnownError = errorByStatus[response.status]
+    throw KnownError ? new KnownError() : new ServerError(response.status)
   }
 
   // у ответа 204 нет тела

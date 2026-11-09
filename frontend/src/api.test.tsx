@@ -23,19 +23,18 @@ describe('request', () => {
   it('возвращает JSON успешного ответа и добавляет Bearer и Content-Type', async () => {
     sessionStorage.setItem(tokenKey, 'token-1')
     const fetch = mockFetch(reply(200, user))
-    const data = await request('/users/me', { method: 'POST', body: '{}' })
-    expect(data).toEqual(user)
+    expect(await request('/users/me', { method: 'POST', body: '{}' })).toEqual(user)
     const [path, options] = fetch.mock.calls[0]
     expect(path).toBe('/api/users/me')
-    expect(options.headers['Authorization']).toBe('Bearer token-1')
-    expect(options.headers['Content-Type']).toBe('application/json')
+    expect(new Headers(options.headers).get('Authorization')).toBe('Bearer token-1')
+    expect(new Headers(options.headers).get('Content-Type')).toBe('application/json')
   })
 
   it('не отправляет токен для входа и регистрации', async () => {
     sessionStorage.setItem(tokenKey, 'token-1')
     const fetch = mockFetch(reply(201, user))
-    await request('/auth/register', { method: 'POST', body: '{}' }, false)
-    expect(fetch.mock.calls[0][1].headers['Authorization']).toBeUndefined()
+    await request('/auth/register', { method: 'POST', body: '{}', authenticated: false })
+    expect(new Headers(fetch.mock.calls[0][1].headers).get('Authorization')).toBeNull()
   })
 
   it('для 204 возвращает undefined и не читает тело', async () => {
@@ -61,7 +60,7 @@ describe('request', () => {
 
   it('при 409 бросает ошибку с понятным текстом и не возвращает пользователя', async () => {
     mockFetch(reply(409, { error: { code: 'conflict', message: 'x' } }))
-    const error = await errorOf(request('/auth/register', { method: 'POST', body: '{}' }, false))
+    const error = await errorOf(request('/auth/register', { method: 'POST', body: '{}', authenticated: false }))
     expect(error.status).toBe(409)
     expect(error.message).toBe('Этот логин или почта уже зарегистрированы.')
   })
@@ -79,5 +78,31 @@ describe('request', () => {
     const error = await errorOf(request('/users/me'))
     expect(error).not.toBeInstanceOf(ApiError)
     expect((error as unknown as DOMException).name).toBe('AbortError')
+  })
+
+  it('сохраняет заголовки, переданные в request, и добавляет к ним свои', async () => {
+    sessionStorage.setItem(tokenKey, 'token-1')
+    const fetch = mockFetch(reply(200, user))
+    await request('/users/me', { method: 'POST', body: '{}', headers: { 'X-Request-Id': '42' } })
+    const headers = new Headers(fetch.mock.calls[0][1].headers)
+    expect(headers.get('X-Request-Id')).toBe('42')
+    expect(headers.get('Authorization')).toBe('Bearer token-1')
+    expect(headers.get('Content-Type')).toBe('application/json')
+  })
+
+  it('запоздавший 401 от старого токена не удаляет новый токен', async () => {
+    sessionStorage.setItem(tokenKey, 'old-token')
+    let answer: (value: unknown) => void = () => {}
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(resolve => { answer = resolve })))
+    const expired = vi.fn()
+    window.addEventListener('auth-expired', expired)
+    const pending = errorOf(request('/users/me'))
+    sessionStorage.setItem(tokenKey, 'new-token')   // пока запрос шёл, пользователь вошёл заново
+    answer(reply(401, { error: { code: 'unauthorized', message: 'x' } }))
+    const error = await pending
+    window.removeEventListener('auth-expired', expired)
+    expect(error.status).toBe(401)
+    expect(sessionStorage.getItem(tokenKey)).toBe('new-token')
+    expect(expired).not.toHaveBeenCalled()
   })
 })
