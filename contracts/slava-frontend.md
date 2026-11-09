@@ -9,12 +9,13 @@ Proxy Вадима убирает этот префикс: /api/auth/login → /
 
 request<T>(path, options, authenticated) → Promise<T>
 path — серверный путь без /api, например '/users/me'.
-options — обычные параметры fetch: method, body, signal.
+options — обычные параметры fetch: method, body, signal, headers.
 authenticated — по умолчанию true. Для регистрации и входа передать false.
 
 Что делает request:
-Если есть body — ставит Content-Type: application/json.
-Если authenticated и есть токен — ставит Authorization: Bearer <токен>.
+Заголовки из options.headers сохраняются, к ним добавляются свои:
+если есть body и Content-Type не передан — ставит Content-Type: application/json;
+если authenticated и есть токен — ставит Authorization: Bearer <токен>.
 Успешный ответ — возвращает JSON.
 Ответ 204 — возвращает undefined, тело не читает.
 Ошибка — бросает ApiError. Фиктивный пользователь не возвращается.
@@ -32,6 +33,13 @@ message — текст для пользователя:
 Ответ 401 на запрос с токеном:
 токен удаляется из sessionStorage;
 отправляется событие окна 'auth-expired', auth.tsx сбрасывает пользователя.
+Если пока шёл запрос токен сменился (пользователь вышел или вошёл заново),
+запоздавший 401 новый токен не удаляет и 'auth-expired' не отправляет (S5-03).
+
+Запоздавшие ответы профиля (S5-03, auth.tsx):
+ответ /users/me по старому токену не заменяет нового пользователя;
+ошибка такого запроса не показывается в новой сессии.
+Отмена (AbortController) и кнопка «Повторить загрузку» работают как раньше.
 
 Токен:
 хранится в sessionStorage под ключом tokenKey = 'saxophone.access-token'.
@@ -48,7 +56,8 @@ npm ci
 npm test
 npm run lint
 
-Тесты: frontend/src/api.test.tsx — 200, 204, 401, 409, сеть, отмена, вход без токена.
+Тесты: frontend/src/api.test.tsx — 200, 204, 401, 409, сеть, отмена, вход без токена,
+свои заголовки, запоздавший 401; frontend/src/auth.test.tsx — запоздавшие ответы профиля.
 
 Инструменты frontend (package.json, package-lock.json, tsconfig.json,
 vite.config.ts, eslint.config.js, src/test-setup.ts) взяты без изменений
@@ -63,5 +72,4 @@ ProfilePage.tsx, App.test.tsx — тип User и tokenKey.
 При изменении request, ApiError или tokenKey предупредить владельцев этих файлов.
 
 В эту задачу не входят:
-состояние сессии, вход/выход и маршруты — они в auth.tsx и App.tsx (S4-11);
-защита от запоздалого 401 и повтор загрузки профиля — это 5В.
+состояние сессии, вход/выход и маршруты — они в auth.tsx и App.tsx (S4-11).
