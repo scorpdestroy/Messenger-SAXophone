@@ -24,7 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       request<User>('/users/me', { signal: controller.signal })
         .then(data => { if (!controller.signal.aborted && token === sessionStorage.getItem(tokenKey)) setUser(data) })
         .catch((e: unknown) => {
-          if (!controller.signal.aborted && !(e instanceof ApiError && e.status === 401)) {
+          const stale = token !== sessionStorage.getItem(tokenKey)
+          if (!controller.signal.aborted && !stale && !(e instanceof ApiError && e.status === 401)) {
             setError('Не удалось загрузить профиль. Проверьте соединение и повторите.')
           }
         })
