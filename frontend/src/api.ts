@@ -13,13 +13,14 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}, authenticated = true): Promise<T> {
-  const headers: Record<string, string> = {}
-  if (options.body) {
-    headers['Content-Type'] = 'application/json'
+  // заголовки, переданные вызывающим кодом, сохраняем и добавляем к ним свои
+  const headers = new Headers(options.headers)
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
   }
   const token = sessionStorage.getItem(tokenKey)
   if (authenticated && token) {
-    headers['Authorization'] = 'Bearer ' + token
+    headers.set('Authorization', 'Bearer ' + token)
   }
 
   let response: Response
@@ -32,7 +33,9 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
   }
 
   if (!response.ok) {
-    if (response.status === 401 && authenticated && token) {
+    // если пока шёл запрос пользователь вошёл заново, 401 относится к старому токену — новый не трогаем
+    const sameToken = token !== null && sessionStorage.getItem(tokenKey) === token
+    if (response.status === 401 && authenticated && sameToken) {
       // токен больше не действует
       sessionStorage.removeItem(tokenKey)
       window.dispatchEvent(new Event('auth-expired'))
