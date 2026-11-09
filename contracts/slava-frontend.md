@@ -7,10 +7,10 @@ frontend/src/api.ts
 Адрес в браузере начинается с /api.
 Proxy Вадима убирает этот префикс: /api/auth/login → /auth/login.
 
-request<T>(path, options, authenticated) → Promise<T>
+request<T>(path, options) → Promise<T>
 path — серверный путь без /api, например '/users/me'.
-options — обычные параметры fetch: method, body, signal, headers.
-authenticated — по умолчанию true. Для регистрации и входа передать false.
+options — обычные параметры fetch (method, body, signal, headers) и поле authenticated.
+authenticated — по умолчанию true. Для регистрации и входа передать { authenticated: false }.
 
 Что делает request:
 Заголовки из options.headers сохраняются, к ним добавляются свои:
@@ -29,6 +29,9 @@ message — текст для пользователя:
 409 — «Этот логин или почта уже зарегистрированы.»
 0 — «Нет соединения с сервером. Попробуйте ещё раз.»
 остальные — «Ошибка сервера. Попробуйте ещё раз.»
+Для известных кодов бросается подкласс ApiError:
+400 — BadRequestError, 401 — UnauthorizedError, 409 — ConflictError, остальные — ServerError.
+Проверка e instanceof ApiError и e.status работает как раньше.
 
 Ответ 401 на запрос с токеном:
 токен удаляется из sessionStorage;
