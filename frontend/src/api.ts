@@ -34,10 +34,13 @@ const errorByStatus: Record<number, new () => ApiError> = {
   409: ConflictError,
 }
 
-export async function request<T>(path: string, options: RequestInit = {}, authenticated = true): Promise<T> {
+export type RequestOptions = RequestInit & { authenticated?: boolean }
+
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { authenticated = true, ...init } = options
   // заголовки, переданные вызывающим кодом, сохраняем и добавляем к ним свои
-  const headers = new Headers(options.headers)
-  if (options.body && !headers.has('Content-Type')) {
+  const headers = new Headers(init.headers)
+  if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   const token = sessionStorage.getItem(tokenKey)
@@ -47,7 +50,7 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
 
   let response: Response
   try {
-    response = await fetch('/api' + path, { ...options, headers })
+    response = await fetch('/api' + path, { ...init, headers })
   } catch (error) {
     const aborted = error instanceof DOMException && error.name === 'AbortError'
     if (aborted) throw error

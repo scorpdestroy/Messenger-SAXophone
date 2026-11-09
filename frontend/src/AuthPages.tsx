@@ -52,7 +52,7 @@ export function AuthPage({ user, loading, onLogin, register = false }: {
       if (register) {
         await request('/auth/register', { method: 'POST', body: JSON.stringify({
           username: values.username, email: values.email, password: values.password, display_name: values.display_name,
-        }) }, false)
+        }), authenticated: false })
         setValues({ username: '', email: '', display_name: '', identity: '', password: '' })
         setRegistered(true)
       } else {
