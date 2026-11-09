@@ -20,8 +20,6 @@ services:
     environment:
       AUTH_SECRET_KEY: dev-secret-key-change-me-in-production
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/messenger
-    # Если прямой доступ к API с хоста нужен — оставьте строку ниже.
-    # Если нет — эту строку можно удалить, фронтенд общается с backend по внутренней сети.
     ports:
       - "18000:8000"          # хост:контейнер (8000 — порт uvicorn)
     depends_on:
