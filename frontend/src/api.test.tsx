@@ -23,8 +23,7 @@ describe('request', () => {
   it('возвращает JSON успешного ответа и добавляет Bearer и Content-Type', async () => {
     sessionStorage.setItem(tokenKey, 'token-1')
     const fetch = mockFetch(reply(200, user))
-    const data = await request('/users/me', { method: 'POST', body: '{}' })
-    expect(data).toEqual(user)
+    expect(await request('/users/me', { method: 'POST', body: '{}' })).toEqual(user)
     const [path, options] = fetch.mock.calls[0]
     expect(path).toBe('/api/users/me')
     expect(new Headers(options.headers).get('Authorization')).toBe('Bearer token-1')
@@ -34,7 +33,7 @@ describe('request', () => {
   it('не отправляет токен для входа и регистрации', async () => {
     sessionStorage.setItem(tokenKey, 'token-1')
     const fetch = mockFetch(reply(201, user))
-    await request('/auth/register', { method: 'POST', body: '{}' }, false)
+    await request('/auth/register', { method: 'POST', body: '{}', authenticated: false })
     expect(new Headers(fetch.mock.calls[0][1].headers).get('Authorization')).toBeNull()
   })
 
@@ -61,7 +60,7 @@ describe('request', () => {
 
   it('при 409 бросает ошибку с понятным текстом и не возвращает пользователя', async () => {
     mockFetch(reply(409, { error: { code: 'conflict', message: 'x' } }))
-    const error = await errorOf(request('/auth/register', { method: 'POST', body: '{}' }, false))
+    const error = await errorOf(request('/auth/register', { method: 'POST', body: '{}', authenticated: false }))
     expect(error.status).toBe(409)
     expect(error.message).toBe('Этот логин или почта уже зарегистрированы.')
   })

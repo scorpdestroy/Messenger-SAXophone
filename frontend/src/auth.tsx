@@ -40,8 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
   async function login(identity: string, password: string) {
     const data = await request<{ access_token: string; user: User }>('/auth/login', {
-      method: 'POST', body: JSON.stringify({ identity, password }),
-    }, false)
+      method: 'POST', body: JSON.stringify({ identity, password }), authenticated: false,
+    })
     sessionStorage.setItem(tokenKey, data.access_token)
     setUser(data.user); setError(''); setLoading(false)
   }
