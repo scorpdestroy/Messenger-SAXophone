@@ -12,6 +12,28 @@ export class ApiError extends Error {
   }
 }
 
+export class BadRequestError extends ApiError {
+  constructor() { super(400, 'Проверьте заполнение полей.') }
+}
+
+export class UnauthorizedError extends ApiError {
+  constructor() { super(401, 'Неверный логин или пароль.') }
+}
+
+export class ConflictError extends ApiError {
+  constructor() { super(409, 'Этот логин или почта уже зарегистрированы.') }
+}
+
+export class ServerError extends ApiError {
+  constructor(status: number) { super(status, 'Ошибка сервера. Попробуйте ещё раз.') }
+}
+
+const errorByStatus: Record<number, new () => ApiError> = {
+  400: BadRequestError,
+  401: UnauthorizedError,
+  409: ConflictError,
+}
+
 export async function request<T>(path: string, options: RequestInit = {}, authenticated = true): Promise<T> {
   // заголовки, переданные вызывающим кодом, сохраняем и добавляем к ним свои
   const headers = new Headers(options.headers)
@@ -40,15 +62,8 @@ export async function request<T>(path: string, options: RequestInit = {}, authen
       sessionStorage.removeItem(tokenKey)
       window.dispatchEvent(new Event('auth-expired'))
     }
-    if (response.status === 400) {
-      throw new ApiError(400, 'Проверьте заполнение полей.')
-    } else if (response.status === 401) {
-      throw new ApiError(401, 'Неверный логин или пароль.')
-    } else if (response.status === 409) {
-      throw new ApiError(409, 'Этот логин или почта уже зарегистрированы.')
-    } else {
-      throw new ApiError(response.status, 'Ошибка сервера. Попробуйте ещё раз.')
-    }
+    const KnownError = errorByStatus[response.status]
+    throw KnownError ? new KnownError() : new ServerError(response.status)
   }
 
   // у ответа 204 нет тела
